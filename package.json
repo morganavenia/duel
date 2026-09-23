@@ -1,0 +1,10 @@
+{
+  "name": "word-duel",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22.x" },
+  "dependencies": {
+    "@neondatabase/serverless": "1.1.0",
+    "web-push": "3.6.7"
+  }
+}

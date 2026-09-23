@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Word Duel</title>
+<meta name="theme-color" content="#E7EBE4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131A1F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Duel">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/icon-192.png">
+<link rel="manifest" id="mf" href="/api/manifest">
+<script>(function(){try{var k=new URLSearchParams(location.search).get("k")||localStorage.getItem("duel:k");if(k){document.getElementById("mf").href="/api/manifest?k="+encodeURIComponent(k);}}catch(e){}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7EBE4;--surface:#F5F7F2;--ink:#1C2733;--muted:#5B6770;--line:#C9D0C6;
+  --hit:#4E8A5A;--near:#CFA033;--miss:#8B959C;--key:#D3D9D0;--a:#2F5D8A;--b:#B0553A;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#131A1F;--surface:#1C252C;--ink:#E6EBE4;--muted:#98A3AB;--line:#303C45;--hit:#5A9A66;--near:#C3952B;--miss:#3C464E;--key:#2B353D;--a:#7FA8D6;--b:#E08B6E}}
+:root[data-theme="dark"]{--bg:#131A1F;--surface:#1C252C;--ink:#E6EBE4;--muted:#98A3AB;--line:#303C45;--hit:#5A9A66;--near:#C3952B;--miss:#3C464E;--key:#2B353D;--a:#7FA8D6;--b:#E08B6E}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+:focus-visible{outline:3px solid var(--a);outline-offset:2px}
+.app{height:100%;max-width:500px;margin:0 auto;display:flex;flex-direction:column;padding:0 12px}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;padding:8px 0 6px}
+.tabs{display:flex;background:var(--key);border-radius:10px;padding:3px}
+.tabs button{padding:6px 14px;border-radius:8px;font-weight:600;font-size:15px;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.bell{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--muted)}
+.bell[data-on="true"]{color:var(--hit)}
+.bell svg{width:22px;height:22px}
+
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.view[hidden]{display:none}
+
+/* score strip */
+.strip{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:4px 0 2px}
+.strip b{font-weight:600;font-size:14px}
+.strip em{font-style:normal;font-weight:800;font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.pa b{color:var(--a)} .pb b{color:var(--b)}
+.pa,.pb{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line)}
+.bar i{display:block;height:100%;transition:flex-grow .5s ease}
+.ba{background:var(--a)} .bb{background:var(--b)}
+.sub{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:2px 0 6px}
+.sub .done{color:var(--hit);font-weight:600}
+
+/* board */
+.board{flex:1;min-height:0;container-type:size;display:flex;align-items:center;justify-content:center;padding:4px 0}
+.grid{width:min(100cqw,calc(100cqh * 5 / 6),330px);display:grid;grid-template-rows:repeat(6,1fr);gap:5px}
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.tile{aspect-ratio:1;display:grid;place-items:center;border:2px solid var(--line);border-radius:6px;background:var(--surface);
+  font-weight:800;font-size:min(8cqw,5.6cqh,30px);text-transform:uppercase;
+  transition:background-color 0s linear var(--d,0s),border-color 0s linear var(--d,0s),color 0s linear var(--d,0s)}
+.tile.filled{border-color:var(--muted)}
+.tile.pop{animation:pop .1s ease}
+.tile[data-s]{color:#fff;border-color:transparent}
+.tile[data-s="hit"]{background:var(--hit)}.tile[data-s="near"]{background:var(--near)}.tile[data-s="miss"]{background:var(--miss)}
+.tile.flip{animation:flip .46s ease var(--f,0s) both}
+@keyframes flip{50%{transform:rotateX(90deg)}}
+@keyframes pop{50%{transform:scale(1.08)}}
+.row.shake{animation:shake .32s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+/* keyboard */
+.kb{display:flex;flex-direction:column;gap:6px;padding:6px 0 10px}
+.kr{display:flex;gap:5px;justify-content:center}
+.k{flex:1 1 0;max-width:43px;height:52px;border-radius:6px;background:var(--key);font-weight:600;font-size:17px;text-transform:uppercase;touch-action:manipulation}
+.k.w{flex:1.55 1 0;max-width:66px;font-size:13px;text-transform:none}
+.k[data-s]{color:#fff}.k[data-s="hit"]{background:var(--hit)}.k[data-s="near"]{background:var(--near)}.k[data-s="miss"]{background:var(--miss);opacity:.7}
+.k:active{filter:brightness(.9)}
+
+/* result (replaces keyboard) */
+.result{padding:8px 0 12px}
+.result[hidden]{display:none}
+.rc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.rc h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.rc .s{margin:2px 0 0;color:var(--muted);font-size:14px}
+.vs{display:flex;gap:22px;margin-top:12px}
+.vs .who{font-size:13px;font-weight:600;margin-bottom:5px}
+.mini{display:grid;gap:3px}.mini .r{display:grid;grid-template-columns:repeat(5,11px);gap:3px}
+.mini i{width:11px;height:11px;border-radius:2px;background:var(--miss)}.mini i.hit{background:var(--hit)}.mini i.near{background:var(--near)}
+.verdict{margin:12px 0 0;font-weight:700}
+
+/* scores view */
+.scores{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:24px;-webkit-user-select:text;user-select:text}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:10px 0 4px}
+.hero .side{display:flex;flex-direction:column}
+.hero .side.b{align-items:flex-end}
+.hero .nm{font-weight:600;font-size:15px}
+.hero .side.a .nm{color:var(--a)} .hero .side.b .nm{color:var(--b)}
+.hero .pts{font-weight:800;font-size:clamp(56px,18vw,84px);line-height:.9;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.hero .bar{grid-column:1/-1;height:10px;border-radius:5px;margin-top:8px}
+.range{display:flex;gap:4px;justify-content:center;margin:10px 0 4px}
+.range button{padding:5px 12px;border-radius:14px;font-size:14px;color:var(--muted)}
+.range button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.scores h2{font-size:17px;font-weight:800;margin:22px 0 8px}
+.stats{display:grid;grid-template-columns:1fr auto auto;column-gap:0;font-variant-numeric:tabular-nums}
+.stats>div{padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.stats .v{text-align:right;font-weight:600;min-width:70px;padding-left:18px}.stats .h{font-weight:600}.stats .l{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+th,td{padding:7px 0;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left;color:var(--muted);font-weight:400}
+th{font-weight:600} td.win{font-weight:800} td.x{color:var(--muted)}
+.fine{font-size:13px;color:var(--muted);margin-top:18px}
+.tip{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;margin-top:16px}
+.tip[hidden]{display:none}
+
+.gate{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:24px}
+.gate h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.gate p{margin:0;color:var(--muted)}
+
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 56px);transform:translate(-50%,-12px);opacity:0;background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:10px;font-weight:600;font-size:15px;max-width:88vw;text-align:center;pointer-events:none;transition:opacity .2s,transform .2s;z-index:10}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion: reduce){.tile.flip,.tile.pop,.row.shake{animation:none}.tile{--d:0s!important}.bar i,.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top" id="top" hidden>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button role="tab" aria-selected="true" data-v="play" id="tPlay">Play</button>
+      <button role="tab" aria-selected="false" data-v="scores" id="tScores">Scores</button>
+    </nav>
+    <button class="bell" id="bell" aria-label="Turn on notifications" data-on="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    </button>
+  </header>
+
+  <section class="view" id="vPlay" hidden>
+    <div class="strip" id="strip">
+      <span class="pa"><b id="nA">You</b><em id="sA">0</em></span>
+      <div class="bar" aria-hidden="true"><i class="ba" id="bA" style="flex-grow:1"></i><i class="bb" id="bB" style="flex-grow:1"></i></div>
+      <span class="pb"><em id="sB">0</em><b id="nB">Them</b></span>
+    </div>
+    <div class="sub"><span id="puz">Puzzle 1</span><span id="opp"></span></div>
+    <div class="board"><div class="grid" id="grid" aria-label="Your guesses"></div></div>
+    <div class="result" id="result" hidden></div>
+    <div class="kb" id="kb" aria-label="Keyboard"></div>
+  </section>
+
+  <section class="view scores" id="vScores" hidden>
+    <div class="hero">
+      <div class="side a"><span class="nm" id="hnA">You</span><span class="pts" id="hsA">0</span></div>
+      <div class="side b"><span class="nm" id="hnB">Them</span><span class="pts" id="hsB">0</span></div>
+      <div class="bar" aria-hidden="true"><i class="ba" id="hbA" style="flex-grow:1"></i><i class="bb" id="hbB" style="flex-grow:1"></i></div>
+    </div>
+    <div class="range" role="group" aria-label="Score range">
+      <button data-r="week" aria-pressed="true">This week</button>
+      <button data-r="month" aria-pressed="false">This month</button>
+      <button data-r="all" aria-pressed="false">All time</button>
+    </div>
+    <h2>Head to head</h2>
+    <div class="stats" id="stats"></div>
+    <h2>Last 14 days</h2>
+    <table id="recent"></table>
+    <div class="tip" id="installTip" hidden></div>
+    <p class="fine">Solve in 1 guess for 6 points, down to 1 point for 6 guesses. A miss is 0. More points takes the day. New puzzle at midnight Eastern, with a reminder around 9am.</p>
+  </section>
+
+  <section class="gate" id="gate" hidden>
+    <h1>Word Duel</h1>
+    <p id="gateMsg">This is a private game. Open it from your invite link.</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/words.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
